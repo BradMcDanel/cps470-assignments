@@ -83,24 +83,6 @@ def test_div():
     print("test_div passed!")
 
 
-def test_relu():
-    """Test ReLU activation."""
-    # Positive input
-    a = Value(3.0)
-    b = a.relu()
-    b.backward()
-    assert b.data == 3.0, f"Expected 3.0, got {b.data}"
-    assert a.grad == 1.0, f"Expected a.grad=1.0, got {a.grad}"
-
-    # Negative input
-    c = Value(-3.0)
-    d = c.relu()
-    d.backward()
-    assert d.data == 0.0, f"Expected 0.0, got {d.data}"
-    assert c.grad == 0.0, f"Expected c.grad=0.0, got {c.grad}"
-    print("test_relu passed!")
-
-
 def test_chain():
     """Test a chain of operations."""
     a = Value(2.0)
@@ -145,24 +127,26 @@ def test_scalar_ops():
     print("test_scalar_ops passed!")
 
 
-def test_neuron():
-    """Test a simple neuron computation."""
+def test_linear():
+    """Test a simple linear computation (like a neuron without activation)."""
     # Inputs
     x1 = Value(2.0)
-    x2 = Value(0.0)
+    x2 = Value(3.0)
     # Weights
     w1 = Value(-3.0)
     w2 = Value(1.0)
     # Bias
-    b = Value(6.8813735870195432)
-    # Neuron: relu(x1*w1 + x2*w2 + b)
-    n = (x1 * w1 + x2 * w2 + b).relu()
-    n.backward()
+    b = Value(1.0)
+    # Linear: x1*w1 + x2*w2 + b = 2*(-3) + 3*1 + 1 = -6 + 3 + 1 = -2
+    out = x1 * w1 + x2 * w2 + b
+    out.backward()
 
-    assert abs(n.data - 0.8813735870195432) < 1e-9
-    assert abs(x1.grad - (-3.0)) < 1e-9
-    assert abs(w1.grad - 2.0) < 1e-9
-    print("test_neuron passed!")
+    assert abs(out.data - (-2.0)) < 1e-9, f"Expected -2.0, got {out.data}"
+    assert abs(x1.grad - (-3.0)) < 1e-9, f"Expected x1.grad=-3.0, got {x1.grad}"
+    assert abs(w1.grad - 2.0) < 1e-9, f"Expected w1.grad=2.0, got {w1.grad}"
+    assert abs(x2.grad - 1.0) < 1e-9, f"Expected x2.grad=1.0, got {x2.grad}"
+    assert abs(w2.grad - 3.0) < 1e-9, f"Expected w2.grad=3.0, got {w2.grad}"
+    print("test_linear passed!")
 
 
 def test_compare_pytorch():
@@ -175,8 +159,7 @@ def test_compare_pytorch():
     c = a * b
     d = a + c
     e = d ** 2
-    f = e.relu()
-    f.backward()
+    e.backward()
 
     # PyTorch computation
     a_pt = torch.tensor(2.0, requires_grad=True)
@@ -184,11 +167,10 @@ def test_compare_pytorch():
     c_pt = a_pt * b_pt
     d_pt = a_pt + c_pt
     e_pt = d_pt ** 2
-    f_pt = torch.relu(e_pt)
-    f_pt.backward()
+    e_pt.backward()
 
     # Compare
-    assert abs(f.data - f_pt.item()) < 1e-6, f"Forward pass mismatch"
+    assert abs(e.data - e_pt.item()) < 1e-6, f"Forward pass mismatch"
     assert abs(a.grad - a_pt.grad.item()) < 1e-6, f"Gradient mismatch for a"
     assert abs(b.grad - b_pt.grad.item()) < 1e-6, f"Gradient mismatch for b"
     print("test_compare_pytorch passed!")
@@ -207,11 +189,10 @@ def run_all_tests():
         test_neg,
         test_sub,
         test_div,
-        test_relu,
         test_chain,
         test_reuse,
         test_scalar_ops,
-        test_neuron,
+        test_linear,
         test_compare_pytorch,
     ]
 

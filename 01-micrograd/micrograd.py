@@ -31,7 +31,7 @@ class Value:
 
     def __add__(self, other):
         """
-        Addition: self + other
+        Addition: self + other  (PROVIDED AS EXAMPLE)
 
         Forward pass: out.data = self.data + other.data
         Backward pass: Both inputs receive the upstream gradient unchanged
@@ -40,10 +40,12 @@ class Value:
         other = other if isinstance(other, Value) else Value(other)
         out = Value(self.data + other.data, (self, other), '+')
 
+        # The _backward function computes gradients for the inputs.
+        # out.grad contains the gradient flowing back from downstream.
+        # We accumulate (+=) because a value might be used multiple times.
         def _backward():
-            # TODO: Accumulate gradients for self and other
-            # Hint: The gradient flows through addition unchanged
-            pass
+            self.grad += out.grad
+            other.grad += out.grad
 
         out._backward = _backward
         return out
@@ -121,23 +123,6 @@ class Value:
         other = other if isinstance(other, Value) else Value(other)
         return self.data < other.data
 
-    def relu(self):
-        """
-        ReLU activation: max(0, x)
-
-        Forward pass: out.data = max(0, self.data)
-        Backward pass: gradient is 1 if self.data > 0, else 0
-        """
-        out = Value(max(0, self.data), (self,), 'ReLU')
-
-        def _backward():
-            # TODO: Accumulate gradient for self
-            # Hint: ReLU passes gradient through if input > 0, else blocks it
-            pass
-
-        out._backward = _backward
-        return out
-
     def backward(self):
         """
         Compute gradients for all nodes in the computational graph.
@@ -147,14 +132,28 @@ class Value:
         2. Set self.grad = 1.0 (the gradient of the output with respect to itself)
         3. Call _backward() on each node in reverse topological order
 
-        Hint: Use depth-first search to build the topological order.
+        What is topological order?
+        --------------------------
+        A topological ordering ensures that for every node, all nodes it depends on
+        come before it in the ordering. For example, if c = a + b, then both a and b
+        must appear before c in the topological order.
+
+        For backpropagation, we need REVERSE topological order: we start from the
+        output and work backwards, ensuring we process each node only after we've
+        processed all nodes that depend on it. This guarantees that out.grad is
+        fully accumulated before we call _backward().
+
+        How to build it:
+        ----------------
+        Use depth-first search (DFS). Visit a node's children (in _prev) before
+        adding the node itself to the list. This naturally produces topological order.
         """
-        # TODO: Build topological order
+        # TODO: Build topological order using DFS
         topo = []
         visited = set()
 
         def build_topo(v):
-            # TODO: Implement topological sort using DFS
+            # Hint: if v not in visited, mark it visited, recurse on v._prev, then append v
             pass
 
         build_topo(self)
